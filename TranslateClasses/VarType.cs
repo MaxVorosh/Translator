@@ -8,5 +8,6 @@ public enum VarType
     List,
     Set,
     Dict,
-    None
+    None,
+    VarName
 }

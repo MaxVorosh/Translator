@@ -103,7 +103,8 @@ public class TranslateClass
         {
             return;
         }
-
+        expression[0] = DeleteSpaces(expression[0]);
+        expression[1] = DeleteSpaces(expression[1]);
         if (IsVar(expression[0]))
         {
             if (IsVar(expression[1]))
@@ -138,6 +139,12 @@ public class TranslateClass
         {
             return VarType.None;
         }
+
+        if (IsVar(expression))
+        {
+            return VarType.VarName;
+        }
+
         if (IsExpressionInt(expression))
         {
             return VarType.Int;
