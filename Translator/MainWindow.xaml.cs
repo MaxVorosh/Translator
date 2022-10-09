@@ -27,6 +27,7 @@ namespace Translator
 
         public void ClearText(object sender, RoutedEventArgs e)
         {
+            TextToTranslate.Text = String.Empty;
         }
         
         public void TranslateText(object sender, RoutedEventArgs e)
