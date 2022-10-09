@@ -1,11 +1,30 @@
 {
   "version": 3,
   "targets": {
-    "net6.0-windows7.0": {}
+    "net6.0-windows7.0": {
+      "TranslateClasses/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v6.0",
+        "compile": {
+          "bin/placeholder/TranslateClasses.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/TranslateClasses.dll": {}
+        }
+      }
+    }
   },
-  "libraries": {},
+  "libraries": {
+    "TranslateClasses/1.0.0": {
+      "type": "project",
+      "path": "../TranslateClasses/TranslateClasses.csproj",
+      "msbuildProject": "../TranslateClasses/TranslateClasses.csproj"
+    }
+  },
   "projectFileDependencyGroups": {
-    "net6.0-windows7.0": []
+    "net6.0-windows7.0": [
+      "TranslateClasses >= 1.0.0"
+    ]
   },
   "packageFolders": {
     "C:\\Users\\mavor\\.nuget\\packages\\": {}
@@ -33,7 +52,11 @@
       "frameworks": {
         "net6.0-windows7.0": {
           "targetAlias": "net6.0-windows",
-          "projectReferences": {}
+          "projectReferences": {
+            "C:\\Users\\mavor\\OneDrive\\Рабочий стол\\ВУЗ\\Основы программирования\\Translator\\TranslateClasses\\TranslateClasses.csproj": {
+              "projectPath": "C:\\Users\\mavor\\OneDrive\\Рабочий стол\\ВУЗ\\Основы программирования\\Translator\\TranslateClasses\\TranslateClasses.csproj"
+            }
+          }
         }
       },
       "warningProperties": {

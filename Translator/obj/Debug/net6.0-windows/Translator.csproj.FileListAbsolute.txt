@@ -19,3 +19,9 @@ C:\Users\mavor\OneDrive\Рабочий стол\ВУЗ\Основы програ
 C:\Users\mavor\OneDrive\Рабочий стол\ВУЗ\Основы программирования\Translator\Translator\obj\Debug\net6.0-windows\Translator.pdb
 C:\Users\mavor\OneDrive\Рабочий стол\ВУЗ\Основы программирования\Translator\Translator\obj\Debug\net6.0-windows\Translator.genruntimeconfig.cache
 C:\Users\mavor\OneDrive\Рабочий стол\ВУЗ\Основы программирования\Translator\Translator\obj\Debug\net6.0-windows\ref\Translator.dll
+C:\Users\mavor\OneDrive\Рабочий стол\ВУЗ\Основы программирования\Translator\Translator\bin\Debug\net6.0-windows\TranslateClasses.deps.json
+C:\Users\mavor\OneDrive\Рабочий стол\ВУЗ\Основы программирования\Translator\Translator\bin\Debug\net6.0-windows\TranslateClasses.runtimeconfig.json
+C:\Users\mavor\OneDrive\Рабочий стол\ВУЗ\Основы программирования\Translator\Translator\bin\Debug\net6.0-windows\TranslateClasses.exe
+C:\Users\mavor\OneDrive\Рабочий стол\ВУЗ\Основы программирования\Translator\Translator\bin\Debug\net6.0-windows\TranslateClasses.dll
+C:\Users\mavor\OneDrive\Рабочий стол\ВУЗ\Основы программирования\Translator\Translator\bin\Debug\net6.0-windows\TranslateClasses.pdb
+C:\Users\mavor\OneDrive\Рабочий стол\ВУЗ\Основы программирования\Translator\Translator\obj\Debug\net6.0-windows\Translator.csproj.CopyComplete

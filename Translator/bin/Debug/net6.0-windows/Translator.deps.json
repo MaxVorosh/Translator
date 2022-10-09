@@ -7,14 +7,27 @@
   "targets": {
     ".NETCoreApp,Version=v6.0": {
       "Translator/1.0.0": {
+        "dependencies": {
+          "TranslateClasses": "1.0.0"
+        },
         "runtime": {
           "Translator.dll": {}
+        }
+      },
+      "TranslateClasses/1.0.0": {
+        "runtime": {
+          "TranslateClasses.dll": {}
         }
       }
     }
   },
   "libraries": {
     "Translator/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "TranslateClasses/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using TranslateClass;
 
 namespace Translator
 {
@@ -20,8 +21,10 @@ namespace Translator
     /// </summary>
     public partial class MainWindow : Window
     {
+        private TranslateViewModelClass translator;
         public MainWindow()
         {
+            translator = new TranslateViewModelClass();
             InitializeComponent();
         }
 
@@ -32,6 +35,7 @@ namespace Translator
         
         public void TranslateText(object sender, RoutedEventArgs e)
         {
+            TranslatedText.Text = translator.TranslateText(TextToTranslate.Text);
         }
     }
 }
