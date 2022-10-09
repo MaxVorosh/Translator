@@ -44,16 +44,47 @@ public class TranslateClass
         {
             translated.Append('\t');
         }
-        translated.Append("//");
-        translated.Append(line);
+
+        if (IsAssignment(line))
+        {
+            translated.Append(line);
+            translated.Append(';');
+        }
+        else
+        {
+            translated.Append("//");
+            translated.Append(line);
+        }
         _translatedText.Append(translated.ToString());
         _translatedText.Append("\r\n");
     }
 
+    public bool IsAssignment(string line)
+    {
+        var expression = GetAssignmentExpression(line);
+        return IsVar(expression[0]) && GetExpressionType(expression[1]) != VarType.None;
+    }
+
+    public string[] GetAssignmentExpression(string line)
+    {
+        string[] expressions = line.Split('=');
+        StringBuilder secondPart = new StringBuilder();
+        for (int i = 1; i < expressions.Length; ++i)
+        {
+            secondPart.Append(expressions[i]);
+            if (i != expressions.Length - 1)
+            {
+                secondPart.Append('=');
+            }
+        }
+        string[] result = { expressions[0], secondPart.ToString() };
+        return result;
+    }
+
     public void AddVar(string line)
     {
-        string[] expression = line.Split('=');
-        if (expression.Length != 2)
+        var expression = GetAssignmentExpression(line);
+        if (expression[1] == String.Empty)
         {
             return;
         }
@@ -85,20 +116,29 @@ public class TranslateClass
 
     public VarType GetExpressionType(string expression)
     {
+        if (IsExpressionInt(expression))
+        {
+            return VarType.Int;
+        }
+        return VarType.None;
+    }
+
+    public bool IsExpressionInt(string expression)
+    {
         var nameParts = expression.Split(' ').Where(x => x.Length >= 1).ToList();
         if (nameParts.Count != 1)
         {
-            return VarType.None;
+            return false;
         }
         expression = nameParts[0];
         for (int i = 0; i < expression.Length; ++i)
         {
             if (!(IsDigit(expression[i]) || i == 0 && expression[i] == '-'))
             {
-                return VarType.None;
+                return false;
             }
         }
-        return VarType.Int;
+        return true;
     }
 
     public bool IsVar(string name)
