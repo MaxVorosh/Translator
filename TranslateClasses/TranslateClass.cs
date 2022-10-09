@@ -2,18 +2,29 @@
 using System.Text;
 
 namespace TranslateClass;
+
 public class TranslateClass
 {
 
     private StringBuilder _translatedText;
     private int _indent;
     private Dictionary<string, VarType> vars;
+    private Dictionary<VarType, string> cTypes;
 
     public TranslateClass()
     {
         _translatedText = new StringBuilder();
         _indent = 0;
         vars = new Dictionary<string, VarType>();
+        cTypes = new Dictionary<VarType, string>();
+        FillCTypes();
+    }
+
+    public void FillCTypes()
+    {
+        cTypes[VarType.Int] = "int";
+        cTypes[VarType.Float] = "double";
+        cTypes[VarType.String] = "string";
     }
 
     public string TranslateText(string text)
@@ -26,6 +37,7 @@ public class TranslateClass
         {
             AddVar(line);
         }
+
         foreach (var line in lines)
         {
             if (line.Length > 0)
@@ -33,6 +45,7 @@ public class TranslateClass
                 WriteLine(line);
             }
         }
+
         _translatedText.Append("}\r\n");
         return _translatedText.ToString();
     }
@@ -55,6 +68,7 @@ public class TranslateClass
             translated.Append("//");
             translated.Append(line);
         }
+
         _translatedText.Append(translated.ToString());
         _translatedText.Append("\r\n");
     }
@@ -77,6 +91,7 @@ public class TranslateClass
                 secondPart.Append('=');
             }
         }
+
         string[] result = { expressions[0], secondPart.ToString() };
         return result;
     }
@@ -88,6 +103,7 @@ public class TranslateClass
         {
             return;
         }
+
         if (IsVar(expression[0]))
         {
             if (IsVar(expression[1]))
@@ -111,29 +127,80 @@ public class TranslateClass
         {
             _translatedText.Append('\t');
         }
-        _translatedText.Append($"{vars[expression[0]].ToString()} {expression[0]};\r\n");
+
+        _translatedText.Append($"{cTypes[vars[expression[0]]]} {expression[0]};\r\n");
     }
 
     public VarType GetExpressionType(string expression)
     {
+        expression = DeleteSpaces(expression);
+        if (expression == String.Empty)
+        {
+            return VarType.None;
+        }
         if (IsExpressionInt(expression))
         {
             return VarType.Int;
         }
+
+        if (IsExpressionFloat(expression))
+        {
+            return VarType.Float;
+        }
+
+        if (IsExpressionString(expression))
+        {
+            return VarType.String;
+        }
+
         return VarType.None;
     }
 
-    public bool IsExpressionInt(string expression)
+    public string DeleteSpaces(string expression)
     {
         var nameParts = expression.Split(' ').Where(x => x.Length >= 1).ToList();
         if (nameParts.Count != 1)
         {
-            return false;
+            return String.Empty;
         }
+
         expression = nameParts[0];
+        return expression;
+    }
+
+    public bool IsExpressionInt(string expression)
+    {
         for (int i = 0; i < expression.Length; ++i)
         {
             if (!(IsDigit(expression[i]) || i == 0 && expression[i] == '-'))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public bool IsExpressionString(string expression)
+    {
+        char c = expression[0];
+        return ((c == '"' || c == '\'') && c == expression[^1]);
+    }
+
+    public bool IsExpressionFloat(string expression)
+    {
+        bool isDot = false;
+        for (int i = 0; i < expression.Length; ++i)
+        {
+            if (expression[i] == '.')
+            {
+                if (isDot)
+                {
+                    return false;
+                }
+                isDot = true;
+            }
+            else if (!(IsDigit(expression[i]) || (i == 0 && expression[i] == '-')))
             {
                 return false;
             }
