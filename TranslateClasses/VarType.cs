@@ -5,6 +5,7 @@ public enum VarType
     Int,
     String,
     Float,
+    Bool,
     List,
     Set,
     Dict,

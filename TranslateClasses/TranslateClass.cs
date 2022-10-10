@@ -31,6 +31,7 @@ public class TranslateClass
     {
         _translatedText = new StringBuilder();
         _indent = 0;
+        vars = new Dictionary<string, VarType>();
         WriteMain();
         string[] lines = text.Split("\r\n");
         foreach (var line in lines)
@@ -76,7 +77,7 @@ public class TranslateClass
     public bool IsAssignment(string line)
     {
         var expression = GetAssignmentExpression(line);
-        return IsVar(expression[0]) && GetExpressionType(expression[1]) != VarType.None;
+        return IsVar(expression[0]) && GetAlgebraTypeExpression(expression[1]) != VarType.None;
     }
 
     public string[] GetAssignmentExpression(string line)
@@ -99,12 +100,12 @@ public class TranslateClass
     public void AddVar(string line)
     {
         var expression = GetAssignmentExpression(line);
-        if (expression[1] == String.Empty)
+        expression[0] = DeleteSpaces(expression[0]);
+        expression[1] = DeleteSpaces(expression[1]);
+        if (expression[1] == String.Empty || vars.ContainsKey(expression[0]))
         {
             return;
         }
-        expression[0] = DeleteSpaces(expression[0]);
-        expression[1] = DeleteSpaces(expression[1]);
         if (IsVar(expression[0]))
         {
             if (IsVar(expression[1]))
@@ -116,7 +117,7 @@ public class TranslateClass
             }
             else
             {
-                vars[expression[0]] = GetExpressionType(expression[1]);
+                vars[expression[0]] = GetAlgebraTypeExpression(expression[1]);
                 if (vars[expression[0]] == VarType.None)
                     return;
             }
@@ -163,15 +164,46 @@ public class TranslateClass
         return VarType.None;
     }
 
+    public VarType GetAlgebraTypeExpression(string expression)
+    {
+        expression = DeleteSpaces(expression);
+        expression += '+';
+        char[] operations = { '+', '-', '/', '*', '%', '(', ')'};
+        string currentExpression = "";
+        for (int i = 0; i < expression.Length; ++i)
+        {
+            if (operations.Contains(expression[i]))
+            {
+                if (currentExpression != String.Empty)
+                {
+                    var type = GetExpressionType(currentExpression);
+                    if (type == VarType.VarName)
+                    {
+                        type = vars[currentExpression];
+                    }
+                    if (type == VarType.Float || type == VarType.String || type == VarType.None)
+                    {
+                        return type;
+                    }
+                }
+            }
+            else
+            {
+                currentExpression += expression[i];
+            }
+        }
+        return VarType.Int;
+    }
+
     public string DeleteSpaces(string expression)
     {
         var nameParts = expression.Split(' ').Where(x => x.Length >= 1).ToList();
-        if (nameParts.Count != 1)
+        if (nameParts.Count == 0)
         {
             return String.Empty;
         }
 
-        expression = nameParts[0];
+        expression = String.Join(String.Empty, nameParts);
         return expression;
     }
 
