@@ -46,23 +46,69 @@ public class TranslateClass
                 WriteLine(line);
             }
         }
-
+        UpdateIndent("");
         _translatedText.Append("}\r\n");
         return _translatedText.ToString();
+    }
+
+    public string UpdateIndent(string line)
+    {
+        string oldLine = line;
+        line = "";
+        int space = 0;
+        int tab = 0;
+        for (int i = 0; i < oldLine.Length; ++i)
+        {
+            if (oldLine[i] == ' ' && line == String.Empty)
+            {
+                space++;
+            }
+            else if (oldLine[i] == '\t' && line == String.Empty)
+            {
+                tab++;
+            }
+            else
+            {
+                line += oldLine[i];
+            }
+        }
+        tab += space / 4;
+        if (tab + 1 >= _indent)
+        {
+            _indent = tab + 1;
+            return line;
+        }
+
+        while (_indent > tab + 1)
+        {
+            StringBuilder bracket = new StringBuilder();
+            for (int i = 0; i < _indent - 1; ++i)
+            {
+                bracket.Append("\t");
+            }
+            bracket.Append("}\r\n");
+            _indent--;
+            _translatedText.Append(bracket);
+        }
+        return line;
     }
 
     public void WriteLine(string line)
     {
         var translated = new StringBuilder();
+        line = UpdateIndent(line);
         for (int i = 0; i < _indent; ++i)
         {
-            translated.Append('\t');
+            _translatedText.Append('\t');
         }
-
         if (IsAssignment(line))
         {
             translated.Append(line);
             translated.Append(';');
+        }
+        else if (IsIf(line))
+        {
+            ConvertFromIf(line);
         }
         else
         {
@@ -72,6 +118,23 @@ public class TranslateClass
 
         _translatedText.Append(translated.ToString());
         _translatedText.Append("\r\n");
+    }
+
+    public void ConvertFromIf(string line)
+    {
+        line = line.Substring(0, 3) + '(' + line.Substring(3, line.Length - 4) + ')';
+        _translatedText.Append(line);
+        _translatedText.Append("\r\n");
+        for (int i = 0; i < _indent; ++i)
+        {
+            _translatedText.Append("\t");
+        }
+        _translatedText.Append("{");
+    }
+
+    public bool IsIf(string line)
+    {
+        return (line[0] == 'i' && line[1] == 'f' && line[2] == ' ' && line[^1] == ':');
     }
 
     public bool IsAssignment(string line)
