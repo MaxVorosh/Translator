@@ -118,6 +118,14 @@ public class TranslateClass
         {
             ConvertFromElif(line);
         }
+        else if (IsWhile(line))
+        {
+            ConvertFromWhile(line);
+        }
+        else if (IsFor(line))
+        {
+            ConvertFromFor(line);
+        }
         else
         {
             translated.Append("//");
@@ -135,10 +143,90 @@ public class TranslateClass
         _translatedText.Append("\r\n");
         AddOpenBracket();
     }
+
+    public void ConvertFromWhile(string line)
+    {
+        line = line.Substring(0, 6) + '(' + line.Substring(6, line.Length - 7) + ')';
+        _translatedText.Append(line);
+        _translatedText.Append("\r\n");
+        AddOpenBracket();
+    }
+
+    public bool IsWhile(string line)
+    {
+        return line.Length >= 6 && line.Substring(0, 6) == "while " && line[^1] == ':';
+    }
     
+    public void ConvertFromFor(string line)
+    {
+        var patterns = line.Split(' ').Where(x => x.Length >= 1).ToList();
+        if (patterns[3].Length >= 6 && patterns[3].Substring(0, 6) == "range(")
+        {
+            int a = 0, b = 0, c = 1;
+            List<string> rangeList = new List<string>();
+            for (int i = 3; i < patterns.Count; ++i)
+                rangeList.Add(patterns[i]);
+            string range = String.Join(String.Empty, rangeList);
+            bool isLastDigit = false;
+            int currentValue = 0;
+            int cnt = 0;
+            for (int i = 0; i < range.Length; ++i)
+            {
+                if (IsDigit(range[i]))
+                {
+                    isLastDigit = true;
+                    currentValue *= 10;
+                    currentValue += range[i] - '0';
+                }
+                else if (isLastDigit)
+                {
+                    if (cnt == 0)
+                    {
+                        b = currentValue;
+                        cnt++;
+                    }
+                    else if (cnt == 1)
+                    {
+                        a = currentValue;
+                        cnt++;
+                    }
+                    else
+                    {
+                        c = currentValue;
+                        cnt++;
+                    }
+                    currentValue = 0;
+                    isLastDigit = false;
+                }
+            }
+            if (cnt >= 2)
+            {
+                (a, b) = (b, a);
+            }
+            line = $"for (int {patterns[1]} = {a}; {patterns[1]} < {b}; {patterns[1]}+={c})";
+        }
+        else
+        {
+            if (patterns[3][^1] == ':')
+            {
+                patterns[3] = patterns[3].Substring(0, patterns[3].Length - 1);
+            }
+            line = $"foreach (var {patterns[1]} in {patterns[3]})";
+        }
+        _translatedText.Append(line);
+        _translatedText.Append("\r\n");
+        AddOpenBracket();
+    }
+
+    public bool IsFor(string line)
+    {
+        var patterns = line.Split(' ').Where(x => x.Length >= 1).ToList();
+        return patterns.Count >= 4 && patterns[0] == "for" && patterns[2] == "in" && line[^1] == ':';
+    }
+
     public bool IsIf(string line)
     {
-        return (line[0] == 'i' && line[1] == 'f' && line[2] == ' ' && line[^1] == ':');
+        return (line.Length >= 3 && line[0] == 'i' && line[1] == 'f' && line[2] == ' ' && line[^1] == ':');
     }
 
     public bool IsElse(string line)
@@ -149,7 +237,7 @@ public class TranslateClass
 
     public bool IsElif(string line)
     {
-        return (line.Substring(0, 5) == "elif " && line[^1] == ':');
+        return (line.Length >= 5 && line.Substring(0, 5) == "elif " && line[^1] == ':');
     }
 
     public void AddOpenBracket()
@@ -281,7 +369,14 @@ public class TranslateClass
                     var type = GetExpressionType(currentExpression);
                     if (type == VarType.VarName)
                     {
-                        type = vars[currentExpression];
+                        if (vars.ContainsKey(currentExpression))
+                        {
+                            type = vars[currentExpression];
+                        }
+                        else
+                        {
+                            return VarType.None;
+                        }
                     }
                     if (type == VarType.Float || type == VarType.String || type == VarType.None)
                     {
