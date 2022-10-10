@@ -110,6 +110,14 @@ public class TranslateClass
         {
             ConvertFromIf(line);
         }
+        else if (IsElse(line))
+        {
+            ConvertFromElse(line);
+        }
+        else if (IsElif(line))
+        {
+            ConvertFromElif(line);
+        }
         else
         {
             translated.Append("//");
@@ -125,6 +133,27 @@ public class TranslateClass
         line = line.Substring(0, 3) + '(' + line.Substring(3, line.Length - 4) + ')';
         _translatedText.Append(line);
         _translatedText.Append("\r\n");
+        AddOpenBracket();
+    }
+    
+    public bool IsIf(string line)
+    {
+        return (line[0] == 'i' && line[1] == 'f' && line[2] == ' ' && line[^1] == ':');
+    }
+
+    public bool IsElse(string line)
+    {
+        line = DeleteSpaces(line);
+        return line == "else:";
+    }
+
+    public bool IsElif(string line)
+    {
+        return (line.Substring(0, 5) == "elif " && line[^1] == ':');
+    }
+
+    public void AddOpenBracket()
+    {
         for (int i = 0; i < _indent; ++i)
         {
             _translatedText.Append("\t");
@@ -132,9 +161,19 @@ public class TranslateClass
         _translatedText.Append("{");
     }
 
-    public bool IsIf(string line)
+    public void ConvertFromElse(string line)
     {
-        return (line[0] == 'i' && line[1] == 'f' && line[2] == ' ' && line[^1] == ':');
+        line = line.Substring(0, line.Length - 1);
+        _translatedText.Append(line);
+        _translatedText.Append("\r\n");
+        AddOpenBracket();
+    }
+    public void ConvertFromElif(string line)
+    {
+        line = "else if (" + line.Substring(5, line.Length - 6) + ')';
+        _translatedText.Append(line);
+        _translatedText.Append("\r\n");
+        AddOpenBracket();
     }
 
     public bool IsAssignment(string line)
