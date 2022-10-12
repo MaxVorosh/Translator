@@ -48,6 +48,14 @@ public class TranslateClass
             }
         }
 
+        foreach (var variable in vars.Keys)
+        {
+            if (vars[variable] == VarType.List)
+            {
+                AddList(variable);
+            }
+        }
+
         foreach (var line in lines)
         {
             if (line.Length > 0)
@@ -417,28 +425,28 @@ public class TranslateClass
         }
         else
             return;
-
+        if (vars[expression[0]] == VarType.List)
+        {
+            return;
+        }
         for (int i = 0; i < _indent; ++i)
         {
             _translatedText.Append('\t');
         }
-
-        if (vars[expression[0]] == VarType.List)
-        {
-            AddList(expression[0]);
-            return;
-        }
-
         _translatedText.Append($"{cTypes[vars[expression[0]]]} {expression[0]};\r\n");
     }
 
     public void AddList(string varName)
     {
+        for (int i = 0; i < _indent; ++i)
+        {
+            _translatedText.Append('\t');
+        }
         List<string> text = _textToTranslate.Split("\r\n").ToList();
+        int nameLength = varName.Length;
         foreach (string line in text)
         {
             var expression = DeleteSpaces(line);
-            int nameLength = varName.Length;
             if (expression.Length >= nameLength + 1 && expression.Substring(0, nameLength + 1) == $"{varName}=")
             {
                 string value = expression.Substring(nameLength + 1, expression.Length - nameLength - 1);
@@ -468,7 +476,9 @@ public class TranslateClass
                 string value = expression.Replace($"{varName}.append(", "");
                 value = value.Substring(0, value.Length - 1);
                 var type = GetExpressionType(value);
-                if (type != VarType.None && type != VarType.List)
+                if (type == VarType.VarName && vars.ContainsKey(value))
+                    type = vars[value];
+                if (type != VarType.None && type != VarType.List && type != VarType.VarName)
                     _translatedText.Append($"List<{cTypes[type]}> {varName} = new List<{cTypes[type]}>();\r\n");
                 return;
             }
