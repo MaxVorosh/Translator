@@ -13,11 +13,14 @@ public class TranslateClass
     /// var = list of numbers or strings
     /// var = arithmetic expression
     /// if-elif-else operator
-    /// while and for cycles
+    /// while and for cycles (in for cycle no interaction with iterator)
     /// list.append()
     /// var.find()
+    /// var = FunctionToType(input()) (where FunctionToType = int, string or float or can be not exist)
+    /// print(something)
     /// </summary>
     private StringBuilder _translatedText;
+
     private string _textToTranslate;
     private int _indent; // how many tabs line should include before main text
     private Dictionary<string, VarType> vars; // Var type by it's name
@@ -45,7 +48,7 @@ public class TranslateClass
         // Main function, that translate all text
         _textToTranslate = text;
         _translatedText = new StringBuilder();
-        _indent = 0; 
+        _indent = 0;
         vars = new Dictionary<string, VarType>(); // Set default values
         WriteMain();
         string[] lines = text.Split("\r\n");
@@ -98,6 +101,7 @@ public class TranslateClass
             else
                 line += oldLine[i];
         }
+
         tab += space / 4; // count tabs of line
         if (tab + 1 >= _indent)
         {
@@ -129,6 +133,7 @@ public class TranslateClass
         {
             _translatedText.Append('\t');
         } // Set indents
+
         try
         {
             ConvertIfPattern(line); // Tries translate line
@@ -137,6 +142,7 @@ public class TranslateClass
         {
             ConvertToComment(line); // Marked line as a comment
         }
+
         _translatedText.Append("\r\n");
     }
 
@@ -206,12 +212,14 @@ public class TranslateClass
         {
             return false;
         }
+
         int equalIndex = line.IndexOf('=');
         string variable = line.Substring(0, equalIndex);
         if (!vars.ContainsKey(variable) || vars[variable] != VarType.List)
         {
             return false;
         }
+
         string value = line.Substring(equalIndex + 1, line.Length - equalIndex - 1);
         return GetExpressionType(value) == VarType.List;
     }
@@ -226,7 +234,7 @@ public class TranslateClass
     public bool IsPrint(string line)
     {
         // Check if line print something
-        return line.Substring(0, 6) == "print(" && line[^1] == ')';
+        return line.Length >= 6 && line.Substring(0, 6) == "print(" && line[^1] == ')';
     }
 
     public void ConvertFromPrint(string line)
@@ -253,6 +261,10 @@ public class TranslateClass
         else if (line.Contains("float"))
         {
             line = line.Replace("float(input())", "Convert.ToDouble(Console.ReadLine());");
+        }
+        else if (line.Contains("string"))
+        {
+            line = line.Replace("string(input())", "Console.ReadLine();");
         }
         else
         {
@@ -292,42 +304,45 @@ public class TranslateClass
         var patterns = line.Split(' ').Where(x => x.Length >= 1).ToList();
         if (patterns[3].Length >= 6 && patterns[3].Substring(0, 6) == "range(")
         {
-            int a = 0, b = 0, c = 1, currentValue = 0, cnt = 0;
+            int cnt = 0;
+            string a = "0", b = "0", c = "1", currentValue = "";
             List<string> rangeList = new List<string>();
             for (int i = 3; i < patterns.Count; ++i)
                 rangeList.Add(patterns[i]);
             string range = String.Join(String.Empty, rangeList);
-            bool isLastDigit = false;
+            bool is_open = false;
             for (int i = 0; i < range.Length; ++i)
             {
-                if (IsDigit(range[i]))
+                if (!is_open)
                 {
-                    isLastDigit = true;
-                    currentValue *= 10;
-                    currentValue += range[i] - '0';
+                    is_open = range[i] == '(';
+                    continue;
                 }
-                else if (isLastDigit)
+                if (range[i] != ',' && range[i] != ')')
+                {
+                    currentValue += range[i];
+                }
+                else
                 {
                     switch (cnt)
                     {
                         case 0:
-                            b = currentValue;
+                            b = DeleteSpaces(currentValue);
                             cnt++;
                             break;
                         case 1:
-                            a = currentValue;
+                            a = DeleteSpaces(currentValue);
                             cnt++;
                             break;
                         default:
-                            c = currentValue;
+                            c = DeleteSpaces(currentValue);
                             cnt++;
                             break;
                     }
-
-                    currentValue = 0;
-                    isLastDigit = false;
+                    currentValue = "";
                 }
             }
+
             if (cnt >= 2)
                 (a, b) = (b, a);
             line = $"for (int {patterns[1]} = {a}; {patterns[1]} < {b}; {patterns[1]}+={c})";
@@ -338,6 +353,7 @@ public class TranslateClass
                 patterns[3] = patterns[3].Substring(0, patterns[3].Length - 1);
             line = $"foreach (var {patterns[1]} in {patterns[3]})";
         }
+
         _translatedText.Append(line);
         _translatedText.Append("\r\n");
         AddOpenBracket();
@@ -402,7 +418,8 @@ public class TranslateClass
     {
         // Check if line is algebra expression
         var expression = GetAssignmentExpression(line);
-        return IsVar(expression[0]) && GetAlgebraTypeExpression(expression[1]) != VarType.None;
+        return expression[1] != String.Empty && IsVar(expression[0]) &&
+               GetAlgebraTypeExpression(expression[1]) != VarType.None;
     }
 
     public string[] GetAssignmentExpression(string line)
@@ -449,14 +466,17 @@ public class TranslateClass
         }
         else
             return;
+
         if (vars[expression[0]] == VarType.List)
         {
             return;
         }
+
         for (int i = 0; i < _indent; ++i)
         {
             _translatedText.Append('\t');
         }
+
         _translatedText.Append($"{cTypes[vars[expression[0]]]} {expression[0]};\r\n");
     }
 
@@ -576,10 +596,13 @@ public class TranslateClass
                     if (type == VarType.Float || type == VarType.String || type == VarType.None || type == VarType.List)
                         return type;
                 }
+
+                currentExpression = "";
             }
             else
                 currentExpression += expression[i];
         }
+
         return VarType.Int;
     }
 
@@ -592,6 +615,8 @@ public class TranslateClass
             return String.Empty;
         }
 
+        expression = String.Join(String.Empty, nameParts);
+        nameParts = expression.Split('\t').ToList();
         expression = String.Join(String.Empty, nameParts);
         return expression;
     }
@@ -607,7 +632,7 @@ public class TranslateClass
             }
         }
 
-        return true;
+        return (expression.Length > 0);
     }
 
     public bool IsExpressionList(string expression)
@@ -620,7 +645,7 @@ public class TranslateClass
     {
         // Check if expression string
         char c = expression[0];
-        return ((c == '"' || c == '\'') && c == expression[^1]);
+        return ((c == '"' || c == '\'') && c == expression[^1] && expression.Length >= 2);
     }
 
     public bool IsExpressionFloat(string expression)
@@ -631,7 +656,7 @@ public class TranslateClass
         {
             if (expression[i] == '.')
             {
-                if (isDot)
+                if (isDot || i == expression.Length - 1)
                 {
                     return false;
                 }
@@ -691,6 +716,24 @@ public class TranslateClass
         _translatedText.Append("public static void Main(string[] args)\r\n");
         _translatedText.Append("{\r\n");
         _indent++;
+    }
+
+    public void SetText(string text)
+    {
+        // Function for tests
+        _textToTranslate = text;
+    }
+
+    public string GetText()
+    {
+        // Function for tests
+        return _translatedText.ToString();
+    }
+
+    public void ClearText()
+    {
+        // Function for tests
+        _translatedText = new StringBuilder();
     }
 
     public static void Main(string[] args)
