@@ -5,14 +5,15 @@ namespace TranslateClass;
 
 public class TranslateClass
 {
-
     private StringBuilder _translatedText;
+    private string _textToTranslate;
     private int _indent;
     private Dictionary<string, VarType> vars;
     private Dictionary<VarType, string> cTypes;
 
     public TranslateClass()
     {
+        _textToTranslate = "";
         _translatedText = new StringBuilder();
         _indent = 0;
         vars = new Dictionary<string, VarType>();
@@ -29,6 +30,7 @@ public class TranslateClass
 
     public string TranslateText(string text)
     {
+        _textToTranslate = text;
         _translatedText = new StringBuilder();
         _indent = 0;
         vars = new Dictionary<string, VarType>();
@@ -46,6 +48,7 @@ public class TranslateClass
                 WriteLine(line);
             }
         }
+
         UpdateIndent("");
         _translatedText.Append("}\r\n");
         return _translatedText.ToString();
@@ -60,18 +63,13 @@ public class TranslateClass
         for (int i = 0; i < oldLine.Length; ++i)
         {
             if (oldLine[i] == ' ' && line == String.Empty)
-            {
                 space++;
-            }
             else if (oldLine[i] == '\t' && line == String.Empty)
-            {
                 tab++;
-            }
             else
-            {
                 line += oldLine[i];
-            }
         }
+
         tab += space / 4;
         if (tab + 1 >= _indent)
         {
@@ -86,10 +84,12 @@ public class TranslateClass
             {
                 bracket.Append("\t");
             }
+
             bracket.Append("}\r\n");
             _indent--;
             _translatedText.Append(bracket);
         }
+
         return line;
     }
 
@@ -109,48 +109,33 @@ public class TranslateClass
         {
             ConvertToComment(line);
         }
+
         _translatedText.Append("\r\n");
     }
 
     public void ConvertIfPattern(string line)
     {
         if (IsInput(line))
-        {
             ConvertFromInput(line);
-        }
         else if (IsPrint(line))
-        {
             ConvertFromPrint(line);
-        }
         else if (IsAssignment(line))
         {
             _translatedText.Append(line);
             _translatedText.Append(';');
         }
         else if (IsIf(line))
-        {
             ConvertFromIf(line);
-        }
         else if (IsElse(line))
-        {
             ConvertFromElse(line);
-        }
         else if (IsElif(line))
-        {
             ConvertFromElif(line);
-        }
         else if (IsWhile(line))
-        {
             ConvertFromWhile(line);
-        }
         else if (IsFor(line))
-        {
             ConvertFromFor(line);
-        }
         else
-        {
             ConvertToComment(line);
-        }
     }
 
     public void ConvertToComment(string line)
@@ -214,7 +199,7 @@ public class TranslateClass
     {
         return line.Length >= 6 && line.Substring(0, 6) == "while " && line[^1] == ':';
     }
-    
+
     public void ConvertFromFor(string line)
     {
         var patterns = line.Split(' ').Where(x => x.Length >= 1).ToList();
@@ -253,14 +238,17 @@ public class TranslateClass
                         c = currentValue;
                         cnt++;
                     }
+
                     currentValue = 0;
                     isLastDigit = false;
                 }
             }
+
             if (cnt >= 2)
             {
                 (a, b) = (b, a);
             }
+
             line = $"for (int {patterns[1]} = {a}; {patterns[1]} < {b}; {patterns[1]}+={c})";
         }
         else
@@ -269,8 +257,10 @@ public class TranslateClass
             {
                 patterns[3] = patterns[3].Substring(0, patterns[3].Length - 1);
             }
+
             line = $"foreach (var {patterns[1]} in {patterns[3]})";
         }
+
         _translatedText.Append(line);
         _translatedText.Append("\r\n");
         AddOpenBracket();
@@ -304,6 +294,7 @@ public class TranslateClass
         {
             _translatedText.Append("\t");
         }
+
         _translatedText.Append("{");
     }
 
@@ -314,6 +305,7 @@ public class TranslateClass
         _translatedText.Append("\r\n");
         AddOpenBracket();
     }
+
     public void ConvertFromElif(string line)
     {
         line = "else if (" + line.Substring(5, line.Length - 6) + ')';
@@ -354,6 +346,7 @@ public class TranslateClass
         {
             return;
         }
+
         if (IsVar(expression[0]))
         {
             if (IsVar(expression[1]))
@@ -378,41 +371,74 @@ public class TranslateClass
             _translatedText.Append('\t');
         }
 
+        if (vars[expression[0]] == VarType.List)
+        {
+            AddList(expression[0]);
+            return;
+        }
+
         _translatedText.Append($"{cTypes[vars[expression[0]]]} {expression[0]};\r\n");
+    }
+
+    public void AddList(string varName)
+    {
+        List<string> text = _textToTranslate.Split("\r\n").ToList();
+        foreach (string line in text)
+        {
+            var expression = DeleteSpaces(line);
+            int nameLength = varName.Length;
+            if (expression.Length >= nameLength + 1 && expression.Substring(0, nameLength + 1) == $"{varName}=")
+            {
+                string value = expression.Substring(nameLength + 1, expression.Length - nameLength - 1);
+                if (IsVar(value))
+                {
+                    if (vars.ContainsKey(value))
+                        _translatedText.Append($"var {varName} = {value};\r\n");
+                    return;
+                }
+
+                if (value[0] != '[' || value[^1] != ']')
+                    return;
+
+                if (value != "[]")
+                {
+                    List<string> listValues = value.Substring(1, value.Length - 2).Split(',').ToList();
+                    var type = GetExpressionType(listValues[0]);
+                    if (type != VarType.None && type != VarType.List)
+                        _translatedText.Append($"List<{cTypes[type]}> {varName} = {value};\r\n");
+                    return;
+                }
+            }
+            else if (expression.Length >= nameLength + 8 &&
+                     expression.Substring(0, nameLength + 8) == $"{varName}.append(")
+            {
+                string value = expression.Replace($"{varName}.append(", "");
+                value = value.Substring(0, value.Length - 1);
+                var type = GetExpressionType(value);
+                if (type != VarType.None && type != VarType.List)
+                    _translatedText.Append($"List<{cTypes[type]}> {varName} = new List<{cTypes[type]}>();\r\n");
+                return;
+            }
+        }
     }
 
     public VarType GetExpressionType(string expression)
     {
         expression = DeleteSpaces(expression);
         if (expression == String.Empty)
-        {
             return VarType.None;
-        }
-
         if (IsVar(expression))
-        {
             return VarType.VarName;
-        }
-
         if (IsExpressionInt(expression))
-        {
             return VarType.Int;
-        }
-
         if (IsExpressionFloat(expression))
-        {
             return VarType.Float;
-        }
-
+        if (IsExpressionList(expression))
+            return VarType.List;
         if (IsExpressionString(expression))
-        {
             return VarType.String;
-        }
-
         if (IsInput(expression))
-        {
             return GetInputExpressionType(expression);
-        }
 
         return VarType.None;
     }
@@ -429,6 +455,11 @@ public class TranslateClass
             return VarType.Float;
         }
 
+        if (expression.Substring(0, 4) == "list")
+        {
+            return VarType.List;
+        }
+
         return VarType.String;
     }
 
@@ -436,7 +467,7 @@ public class TranslateClass
     {
         expression = DeleteSpaces(expression);
         expression += '+';
-        char[] operations = { '+', '-', '/', '*', '%'};
+        char[] operations = { '+', '-', '/', '*', '%' };
         string currentExpression = "";
         for (int i = 0; i < expression.Length; ++i)
         {
@@ -456,7 +487,8 @@ public class TranslateClass
                             return VarType.None;
                         }
                     }
-                    if (type == VarType.Float || type == VarType.String || type == VarType.None)
+
+                    if (type == VarType.Float || type == VarType.String || type == VarType.None || type == VarType.List)
                     {
                         return type;
                     }
@@ -467,6 +499,7 @@ public class TranslateClass
                 currentExpression += expression[i];
             }
         }
+
         return VarType.Int;
     }
 
@@ -495,6 +528,11 @@ public class TranslateClass
         return true;
     }
 
+    public bool IsExpressionList(string expression)
+    {
+        return expression[0] == '[' && expression[^1] == ']';
+    }
+
     public bool IsExpressionString(string expression)
     {
         char c = expression[0];
@@ -512,6 +550,7 @@ public class TranslateClass
                 {
                     return false;
                 }
+
                 isDot = true;
             }
             else if (!(IsDigit(expression[i]) || (i == 0 && expression[i] == '-')))
@@ -519,6 +558,7 @@ public class TranslateClass
                 return false;
             }
         }
+
         return true;
     }
 
@@ -529,11 +569,13 @@ public class TranslateClass
         {
             return false;
         }
+
         name = nameParts[0];
         if (!IsLetter(name[0]))
         {
             return false;
         }
+
         for (int i = 1; i < name.Length; ++i)
         {
             if (!IsLetter(name[i]) && !IsDigit(name[i]))
@@ -541,6 +583,7 @@ public class TranslateClass
                 return false;
             }
         }
+
         return true;
     }
 
