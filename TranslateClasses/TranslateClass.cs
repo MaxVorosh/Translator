@@ -106,6 +106,10 @@ public class TranslateClass
         {
             ConvertFromInput(line);
         }
+        else if (IsPrint(line))
+        {
+            ConvertFromPrint(line);
+        }
         else if (IsAssignment(line))
         {
             translated.Append(line);
@@ -139,6 +143,18 @@ public class TranslateClass
 
         _translatedText.Append(translated.ToString());
         _translatedText.Append("\r\n");
+    }
+
+    public bool IsPrint(string line)
+    {
+        return line.Substring(0, 6) == "print(" && line[^1] == ')';
+    }
+
+    public void ConvertFromPrint(string line)
+    {
+        line = line.Replace("print", "Console.WriteLine");
+        _translatedText.Append(line);
+        _translatedText.Append(';');
     }
 
     public bool IsInput(string line)
