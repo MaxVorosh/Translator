@@ -38,7 +38,14 @@ public class TranslateClass
         string[] lines = text.Split("\r\n");
         foreach (var line in lines)
         {
-            AddVar(line);
+            try
+            {
+                AddVar(line);
+            }
+            catch
+            {
+                continue;
+            }
         }
 
         foreach (var line in lines)
@@ -100,7 +107,6 @@ public class TranslateClass
         {
             _translatedText.Append('\t');
         }
-
         try
         {
             ConvertIfPattern(line);
@@ -109,7 +115,6 @@ public class TranslateClass
         {
             ConvertToComment(line);
         }
-
         _translatedText.Append("\r\n");
     }
 
@@ -119,6 +124,10 @@ public class TranslateClass
             ConvertFromInput(line);
         else if (IsPrint(line))
             ConvertFromPrint(line);
+        else if (IsListDefinition(line))
+            return;
+        else if (IsMethod(line))
+            ConvertMethod(line);
         else if (IsAssignment(line))
         {
             _translatedText.Append(line);
@@ -136,6 +145,49 @@ public class TranslateClass
             ConvertFromFor(line);
         else
             ConvertToComment(line);
+    }
+
+    public bool IsMethod(string line)
+    {
+        if (!(line.Split('=').Length == 1 && line.Split('.').Length == 2))
+        {
+            return false;
+        }
+
+        int dotIndex = line.IndexOf('.');
+        string variable = line.Substring(0, dotIndex);
+        return IsVar(variable);
+    }
+
+    public void ConvertMethod(string line)
+    {
+        Dictionary<string, string> methods = new Dictionary<string, string>();
+        methods["append"] = "Add";
+        methods["find"] = "IndexOf";
+        foreach (string method in methods.Keys)
+        {
+            line = line.Replace(method, methods[method]);
+        }
+
+        _translatedText.Append(line);
+        _translatedText.Append(';');
+    }
+
+    public bool IsListDefinition(string line)
+    {
+        line = DeleteSpaces(line);
+        if (line.Split('=').Length != 2)
+        {
+            return false;
+        }
+        int equalIndex = line.IndexOf('=');
+        string variable = line.Substring(0, equalIndex);
+        if (!vars.ContainsKey(variable) || vars[variable] != VarType.List)
+        {
+            return false;
+        }
+        string value = line.Substring(equalIndex + 1, line.Length - equalIndex - 1);
+        return GetExpressionType(value) == VarType.List;
     }
 
     public void ConvertToComment(string line)
@@ -402,10 +454,11 @@ public class TranslateClass
 
                 if (value != "[]")
                 {
-                    List<string> listValues = value.Substring(1, value.Length - 2).Split(',').ToList();
+                    value = value.Substring(1, value.Length - 2);
+                    List<string> listValues = value.Split(',').ToList();
                     var type = GetExpressionType(listValues[0]);
                     if (type != VarType.None && type != VarType.List)
-                        _translatedText.Append($"List<{cTypes[type]}> {varName} = {value};\r\n");
+                        _translatedText.Append($"List<{cTypes[type]}> {varName} = {{{value}}};\r\n");
                     return;
                 }
             }
