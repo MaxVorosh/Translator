@@ -5,11 +5,23 @@ namespace TranslateClass;
 
 public class TranslateClass
 {
+    /// <summary>
+    /// Translate python code to C# code
+    /// Recognize next patterns:
+    /// var = number (int or float)
+    /// var = string
+    /// var = list of numbers or strings
+    /// var = arithmetic expression
+    /// if-elif-else operator
+    /// while and for cycles
+    /// list.append()
+    /// var.find()
+    /// </summary>
     private StringBuilder _translatedText;
     private string _textToTranslate;
-    private int _indent;
-    private Dictionary<string, VarType> vars;
-    private Dictionary<VarType, string> cTypes;
+    private int _indent; // how many tabs line should include before main text
+    private Dictionary<string, VarType> vars; // Var type by it's name
+    private Dictionary<VarType, string> cTypes; // Var type name by type
 
     public TranslateClass()
     {
@@ -30,10 +42,11 @@ public class TranslateClass
 
     public string TranslateText(string text)
     {
+        // Main function, that translate all text
         _textToTranslate = text;
         _translatedText = new StringBuilder();
-        _indent = 0;
-        vars = new Dictionary<string, VarType>();
+        _indent = 0; 
+        vars = new Dictionary<string, VarType>(); // Set default values
         WriteMain();
         string[] lines = text.Split("\r\n");
         foreach (var line in lines)
@@ -46,7 +59,7 @@ public class TranslateClass
             {
                 continue;
             }
-        }
+        } // Declares vars
 
         foreach (var variable in vars.Keys)
         {
@@ -54,7 +67,7 @@ public class TranslateClass
             {
                 AddList(variable);
             }
-        }
+        } // Declares lists
 
         foreach (var line in lines)
         {
@@ -62,7 +75,7 @@ public class TranslateClass
             {
                 WriteLine(line);
             }
-        }
+        } // Translate lines
 
         UpdateIndent("");
         _translatedText.Append("}\r\n");
@@ -71,6 +84,7 @@ public class TranslateClass
 
     public string UpdateIndent(string line)
     {
+        // Add tabs ans close brackets until line will not have good indent. Returns line without tabs
         string oldLine = line;
         line = "";
         int space = 0;
@@ -84,12 +98,11 @@ public class TranslateClass
             else
                 line += oldLine[i];
         }
-
-        tab += space / 4;
+        tab += space / 4; // count tabs of line
         if (tab + 1 >= _indent)
         {
             _indent = tab + 1;
-            return line;
+            return line; // If we should add tab
         }
 
         while (_indent > tab + 1)
@@ -102,7 +115,7 @@ public class TranslateClass
 
             bracket.Append("}\r\n");
             _indent--;
-            _translatedText.Append(bracket);
+            _translatedText.Append(bracket); // Add lines with close brackets
         }
 
         return line;
@@ -110,24 +123,26 @@ public class TranslateClass
 
     public void WriteLine(string line)
     {
+        // Translate one line
         line = UpdateIndent(line);
         for (int i = 0; i < _indent; ++i)
         {
             _translatedText.Append('\t');
-        }
+        } // Set indents
         try
         {
-            ConvertIfPattern(line);
+            ConvertIfPattern(line); // Tries translate line
         }
         catch (Exception e)
         {
-            ConvertToComment(line);
+            ConvertToComment(line); // Marked line as a comment
         }
         _translatedText.Append("\r\n");
     }
 
     public void ConvertIfPattern(string line)
     {
+        // Translate one line by match with some pattern
         if (IsInput(line))
             ConvertFromInput(line);
         else if (IsPrint(line))
@@ -157,6 +172,7 @@ public class TranslateClass
 
     public bool IsMethod(string line)
     {
+        // Check if line is append or find method
         if (!(line.Split('=').Length == 1 && line.Split('.').Length == 2))
         {
             return false;
@@ -169,6 +185,7 @@ public class TranslateClass
 
     public void ConvertMethod(string line)
     {
+        // Translate line if it is method
         Dictionary<string, string> methods = new Dictionary<string, string>();
         methods["append"] = "Add";
         methods["find"] = "IndexOf";
@@ -183,6 +200,7 @@ public class TranslateClass
 
     public bool IsListDefinition(string line)
     {
+        // Check if line is list definition (a = [...])
         line = DeleteSpaces(line);
         if (line.Split('=').Length != 2)
         {
@@ -200,17 +218,20 @@ public class TranslateClass
 
     public void ConvertToComment(string line)
     {
+        // Mark line as a comment
         _translatedText.Append("//");
         _translatedText.Append(line);
     }
 
     public bool IsPrint(string line)
     {
+        // Check if line print something
         return line.Substring(0, 6) == "print(" && line[^1] == ')';
     }
 
     public void ConvertFromPrint(string line)
     {
+        // Translate print
         line = line.Replace("print", "Console.WriteLine");
         _translatedText.Append(line);
         _translatedText.Append(';');
@@ -218,11 +239,13 @@ public class TranslateClass
 
     public bool IsInput(string line)
     {
+        // Check if line contains input
         return line.Contains("input()");
     }
 
     public void ConvertFromInput(string line)
     {
+        // Translate line a = input() or a = ToTypeFunction(input())
         if (line.Contains("int"))
         {
             line = line.Replace("int(input())", "Convert.ToInt32(Console.ReadLine());");
@@ -241,6 +264,7 @@ public class TranslateClass
 
     public void ConvertFromIf(string line)
     {
+        // Translate line with "if" construction
         line = line.Substring(0, 3) + '(' + line.Substring(3, line.Length - 4) + ')';
         _translatedText.Append(line);
         _translatedText.Append("\r\n");
@@ -249,6 +273,7 @@ public class TranslateClass
 
     public void ConvertFromWhile(string line)
     {
+        // Translate while-cycle
         line = line.Substring(0, 6) + '(' + line.Substring(6, line.Length - 7) + ')';
         _translatedText.Append(line);
         _translatedText.Append("\r\n");
@@ -257,22 +282,22 @@ public class TranslateClass
 
     public bool IsWhile(string line)
     {
+        // Check if line is while-cycle
         return line.Length >= 6 && line.Substring(0, 6) == "while " && line[^1] == ':';
     }
 
     public void ConvertFromFor(string line)
     {
+        // Translate line with for-cycle
         var patterns = line.Split(' ').Where(x => x.Length >= 1).ToList();
         if (patterns[3].Length >= 6 && patterns[3].Substring(0, 6) == "range(")
         {
-            int a = 0, b = 0, c = 1;
+            int a = 0, b = 0, c = 1, currentValue = 0, cnt = 0;
             List<string> rangeList = new List<string>();
             for (int i = 3; i < patterns.Count; ++i)
                 rangeList.Add(patterns[i]);
             string range = String.Join(String.Empty, rangeList);
             bool isLastDigit = false;
-            int currentValue = 0;
-            int cnt = 0;
             for (int i = 0; i < range.Length; ++i)
             {
                 if (IsDigit(range[i]))
@@ -283,44 +308,36 @@ public class TranslateClass
                 }
                 else if (isLastDigit)
                 {
-                    if (cnt == 0)
+                    switch (cnt)
                     {
-                        b = currentValue;
-                        cnt++;
-                    }
-                    else if (cnt == 1)
-                    {
-                        a = currentValue;
-                        cnt++;
-                    }
-                    else
-                    {
-                        c = currentValue;
-                        cnt++;
+                        case 0:
+                            b = currentValue;
+                            cnt++;
+                            break;
+                        case 1:
+                            a = currentValue;
+                            cnt++;
+                            break;
+                        default:
+                            c = currentValue;
+                            cnt++;
+                            break;
                     }
 
                     currentValue = 0;
                     isLastDigit = false;
                 }
             }
-
             if (cnt >= 2)
-            {
                 (a, b) = (b, a);
-            }
-
             line = $"for (int {patterns[1]} = {a}; {patterns[1]} < {b}; {patterns[1]}+={c})";
         }
         else
         {
             if (patterns[3][^1] == ':')
-            {
                 patterns[3] = patterns[3].Substring(0, patterns[3].Length - 1);
-            }
-
             line = $"foreach (var {patterns[1]} in {patterns[3]})";
         }
-
         _translatedText.Append(line);
         _translatedText.Append("\r\n");
         AddOpenBracket();
@@ -328,28 +345,33 @@ public class TranslateClass
 
     public bool IsFor(string line)
     {
+        // Check if line is for-cycle
         var patterns = line.Split(' ').Where(x => x.Length >= 1).ToList();
         return patterns.Count >= 4 && patterns[0] == "for" && patterns[2] == "in" && line[^1] == ':';
     }
 
     public bool IsIf(string line)
     {
+        // Check if line is "if ...:"
         return (line.Length >= 3 && line[0] == 'i' && line[1] == 'f' && line[2] == ' ' && line[^1] == ':');
     }
 
     public bool IsElse(string line)
     {
+        // Check if line is a else-part of if-construction
         line = DeleteSpaces(line);
         return line == "else:";
     }
 
     public bool IsElif(string line)
     {
+        // Check if line is elif-part of if-construction
         return (line.Length >= 5 && line.Substring(0, 5) == "elif " && line[^1] == ':');
     }
 
     public void AddOpenBracket()
     {
+        // Add line with open bracket (needs after cycles and if)
         for (int i = 0; i < _indent; ++i)
         {
             _translatedText.Append("\t");
@@ -360,6 +382,7 @@ public class TranslateClass
 
     public void ConvertFromElse(string line)
     {
+        // Translate else-line
         line = line.Substring(0, line.Length - 1);
         _translatedText.Append(line);
         _translatedText.Append("\r\n");
@@ -368,6 +391,7 @@ public class TranslateClass
 
     public void ConvertFromElif(string line)
     {
+        // Translate elif-line
         line = "else if (" + line.Substring(5, line.Length - 6) + ')';
         _translatedText.Append(line);
         _translatedText.Append("\r\n");
@@ -376,12 +400,14 @@ public class TranslateClass
 
     public bool IsAssignment(string line)
     {
+        // Check if line is algebra expression
         var expression = GetAssignmentExpression(line);
         return IsVar(expression[0]) && GetAlgebraTypeExpression(expression[1]) != VarType.None;
     }
 
     public string[] GetAssignmentExpression(string line)
     {
+        // Returns 2 strings - var name and expression, that equals this var
         string[] expressions = line.Split('=');
         StringBuilder secondPart = new StringBuilder();
         for (int i = 1; i < expressions.Length; ++i)
@@ -399,14 +425,12 @@ public class TranslateClass
 
     public void AddVar(string line)
     {
+        // Add declaration of var, if line is "var = something"
         var expression = GetAssignmentExpression(line);
         expression[0] = DeleteSpaces(expression[0]);
         expression[1] = DeleteSpaces(expression[1]);
         if (expression[1] == String.Empty || vars.ContainsKey(expression[0]))
-        {
             return;
-        }
-
         if (IsVar(expression[0]))
         {
             if (IsVar(expression[1]))
@@ -438,10 +462,9 @@ public class TranslateClass
 
     public void AddList(string varName)
     {
+        // Add declaration of list with given var name
         for (int i = 0; i < _indent; ++i)
-        {
             _translatedText.Append('\t');
-        }
         List<string> text = _textToTranslate.Split("\r\n").ToList();
         int nameLength = varName.Length;
         foreach (string line in text)
@@ -487,6 +510,7 @@ public class TranslateClass
 
     public VarType GetExpressionType(string expression)
     {
+        // Match expression (without arithmetic) with types
         expression = DeleteSpaces(expression);
         if (expression == String.Empty)
             return VarType.None;
@@ -508,6 +532,7 @@ public class TranslateClass
 
     public VarType GetInputExpressionType(string expression)
     {
+        // Returns type of var, that definite with given expression
         if (expression.Substring(0, 3) == "int")
         {
             return VarType.Int;
@@ -528,6 +553,7 @@ public class TranslateClass
 
     public VarType GetAlgebraTypeExpression(string expression)
     {
+        // Returns type of arithmetic expression
         expression = DeleteSpaces(expression);
         expression += '+';
         char[] operations = { '+', '-', '/', '*', '%' };
@@ -542,32 +568,24 @@ public class TranslateClass
                     if (type == VarType.VarName)
                     {
                         if (vars.ContainsKey(currentExpression))
-                        {
                             type = vars[currentExpression];
-                        }
                         else
-                        {
                             return VarType.None;
-                        }
                     }
 
                     if (type == VarType.Float || type == VarType.String || type == VarType.None || type == VarType.List)
-                    {
                         return type;
-                    }
                 }
             }
             else
-            {
                 currentExpression += expression[i];
-            }
         }
-
         return VarType.Int;
     }
 
     public string DeleteSpaces(string expression)
     {
+        // returns line that equals expression without whitespaces
         var nameParts = expression.Split(' ').Where(x => x.Length >= 1).ToList();
         if (nameParts.Count == 0)
         {
@@ -580,6 +598,7 @@ public class TranslateClass
 
     public bool IsExpressionInt(string expression)
     {
+        // Check if expression is int number
         for (int i = 0; i < expression.Length; ++i)
         {
             if (!(IsDigit(expression[i]) || i == 0 && expression[i] == '-'))
@@ -593,17 +612,20 @@ public class TranslateClass
 
     public bool IsExpressionList(string expression)
     {
+        // Check if expression list
         return expression[0] == '[' && expression[^1] == ']';
     }
 
     public bool IsExpressionString(string expression)
     {
+        // Check if expression string
         char c = expression[0];
         return ((c == '"' || c == '\'') && c == expression[^1]);
     }
 
     public bool IsExpressionFloat(string expression)
     {
+        // check if expression is float number
         bool isDot = false;
         for (int i = 0; i < expression.Length; ++i)
         {
@@ -627,6 +649,7 @@ public class TranslateClass
 
     public bool IsVar(string name)
     {
+        // Check if given name can be a var name
         var nameParts = name.Split(' ').Where(x => x.Length >= 1).ToList();
         if (nameParts.Count != 1)
         {
@@ -652,16 +675,19 @@ public class TranslateClass
 
     public bool IsLetter(char c)
     {
+        // Check if given char is letter
         return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || (c == '_');
     }
 
     public bool IsDigit(char c)
     {
+        // Check if given char is a digit
         return ('0' <= c && c <= '9');
     }
 
     public void WriteMain()
     {
+        // Write default Main function
         _translatedText.Append("public static void Main(string[] args)\r\n");
         _translatedText.Append("{\r\n");
         _indent++;
