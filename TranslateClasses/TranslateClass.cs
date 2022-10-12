@@ -101,7 +101,12 @@ public class TranslateClass
         {
             _translatedText.Append('\t');
         }
-        if (IsAssignment(line))
+
+        if (IsInput(line))
+        {
+            ConvertFromInput(line);
+        }
+        else if (IsAssignment(line))
         {
             translated.Append(line);
             translated.Append(';');
@@ -134,6 +139,29 @@ public class TranslateClass
 
         _translatedText.Append(translated.ToString());
         _translatedText.Append("\r\n");
+    }
+
+    public bool IsInput(string line)
+    {
+        return line.Contains("input()");
+    }
+
+    public void ConvertFromInput(string line)
+    {
+        if (line.Contains("int"))
+        {
+            line = line.Replace("int(input())", "Convert.ToInt32(Console.ReadLine());");
+        }
+        else if (line.Contains("float"))
+        {
+            line = line.Replace("float(input())", "Convert.ToDouble(Console.ReadLine());");
+        }
+        else
+        {
+            line = line.Replace("input()", "Console.ReadLine();");
+        }
+
+        _translatedText.Append(line);
     }
 
     public void ConvertFromIf(string line)
@@ -351,14 +379,34 @@ public class TranslateClass
             return VarType.String;
         }
 
+        if (IsInput(expression))
+        {
+            return GetInputExpressionType(expression);
+        }
+
         return VarType.None;
+    }
+
+    public VarType GetInputExpressionType(string expression)
+    {
+        if (expression.Substring(0, 3) == "int")
+        {
+            return VarType.Int;
+        }
+
+        if (expression.Substring(0, 5) == "float")
+        {
+            return VarType.Float;
+        }
+
+        return VarType.String;
     }
 
     public VarType GetAlgebraTypeExpression(string expression)
     {
         expression = DeleteSpaces(expression);
         expression += '+';
-        char[] operations = { '+', '-', '/', '*', '%', '(', ')'};
+        char[] operations = { '+', '-', '/', '*', '%'};
         string currentExpression = "";
         for (int i = 0; i < expression.Length; ++i)
         {
