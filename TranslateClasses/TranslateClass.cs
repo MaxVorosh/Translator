@@ -95,13 +95,25 @@ public class TranslateClass
 
     public void WriteLine(string line)
     {
-        var translated = new StringBuilder();
         line = UpdateIndent(line);
         for (int i = 0; i < _indent; ++i)
         {
             _translatedText.Append('\t');
         }
 
+        try
+        {
+            ConvertIfPattern(line);
+        }
+        catch (Exception e)
+        {
+            ConvertToComment(line);
+        }
+        _translatedText.Append("\r\n");
+    }
+
+    public void ConvertIfPattern(string line)
+    {
         if (IsInput(line))
         {
             ConvertFromInput(line);
@@ -112,8 +124,8 @@ public class TranslateClass
         }
         else if (IsAssignment(line))
         {
-            translated.Append(line);
-            translated.Append(';');
+            _translatedText.Append(line);
+            _translatedText.Append(';');
         }
         else if (IsIf(line))
         {
@@ -137,12 +149,14 @@ public class TranslateClass
         }
         else
         {
-            translated.Append("//");
-            translated.Append(line);
+            ConvertToComment(line);
         }
+    }
 
-        _translatedText.Append(translated.ToString());
-        _translatedText.Append("\r\n");
+    public void ConvertToComment(string line)
+    {
+        _translatedText.Append("//");
+        _translatedText.Append(line);
     }
 
     public bool IsPrint(string line)
